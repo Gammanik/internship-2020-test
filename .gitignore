@@ -1,2 +1,5 @@
 .idea
 target
+
+# Google api key: https://developers.google.com/maps/documentation/distance-matrix/intro
+src/main/resources/API_KEY.txt
