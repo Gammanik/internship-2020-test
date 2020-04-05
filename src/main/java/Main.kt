@@ -13,8 +13,6 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.*
 import kotlin.collections.ArrayList
-import kotlin.math.pow
-import kotlin.math.sqrt
 import CONST.API_KEY
 import CONST.MAPS_BASE_URL
 
@@ -60,14 +58,6 @@ suspend fun getDistancesAsync(passenger: Person,
 
     val urlStr = "${MAPS_BASE_URL}?origins=${passenger.finishPoint}&destinations=${driversCoords}&key=${API_KEY}"
     CONST.client.get<DistanceMatrix>(urlStr)
-}
-
-// todo: cut drivers that are longer distance than radius
-fun getClosestDrivers(radius: Double) { }
-
-fun getDistance(p1: Point, p2: Point): Float {
-    return sqrt((p1.longitude - p1.latitude).pow(2) +
-            (p2.longitude - p2.latitude).pow(2))
 }
 
 private fun readPoints(): Participants {
