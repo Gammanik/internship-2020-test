@@ -4,17 +4,10 @@ import io.ktor.client.features.json.GsonSerializer
 import io.ktor.client.features.json.JsonFeature
 import io.ktor.client.request.get
 import kotlinx.coroutines.*
-import model.DistanceMatrix
-import model.Participants
-import model.Person
-import model.Point
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.Paths
+import model.*
+import java.nio.file.*
 import java.util.*
 import kotlin.collections.ArrayList
-import CONST.API_KEY
-import CONST.MAPS_BASE_URL
 
 object CONST {
     val API_KEY: String = Files.readString(Path.of("src/main/resources/API_KEY.txt"))
@@ -28,18 +21,12 @@ object CONST {
 
 fun main() {
     val (passengers, drivers) = readPoints()
-    val responses: ArrayList<Deferred<Collection<Person>>> = ArrayList()
-
-    for (passenger in passengers) {
-        val suggestedDrivers = suggestDriversAsync(passenger, drivers)
-        println("Passenger point: ${passenger.finishPoint.latitude}, ${passenger.finishPoint.longitude}")
-        GlobalScope.launch { responses.add(suggestedDrivers) }
-    }
+    val sortedDriversResponse = passengers.map { suggestDriversAsync(it, drivers) }
 
     runBlocking {
-        val res: List<Collection<Person>> = responses.awaitAll()
-        for (el in res) {
-            println(el.map { "(${it.finishPoint})" })
+        passengers.zip(sortedDriversResponse.awaitAll()).forEach { passToDrivers ->
+            println("Passenger point: ${passToDrivers.first.finishPoint}")
+            passToDrivers.second.forEach { println("${it.finishPoint}") }
         }
     }
 }
@@ -51,14 +38,16 @@ fun suggestDriversAsync(passenger: Person, drivers: ArrayList<Person>): Deferred
                 .map { it.second }
     }
 
-suspend fun getDistancesAsync(passenger: Person,
-                              drivers: Collection<Person>): Deferred<DistanceMatrix> = GlobalScope.async(Dispatchers.IO) {
-    val driversCoords: String = drivers.joinToString(separator = "%7C")
-        { "${it.finishPoint.latitude}%2C${it.finishPoint.longitude}" }
+suspend fun getDistancesAsync(passenger: Person, drivers: Collection<Person>): Deferred<DistanceMatrix> =
+    GlobalScope.async(Dispatchers.IO) {
+        val driversCoords: String = drivers.joinToString(separator = "%7C")
+            { "${it.finishPoint.latitude}%2C${it.finishPoint.longitude}" }
 
-    val urlStr = "${MAPS_BASE_URL}?origins=${passenger.finishPoint}&destinations=${driversCoords}&key=${API_KEY}"
-    CONST.client.get<DistanceMatrix>(urlStr)
-}
+        val urlStr = "${CONST.MAPS_BASE_URL}?origins=${passenger.finishPoint}" +
+            "&destinations=${driversCoords}&key=${CONST.API_KEY}"
+
+        CONST.client.get<DistanceMatrix>(urlStr)
+    }
 
 private fun readPoints(): Participants {
     val pathToResource = Paths.get(Point::class.java.getResource("../latlons").toURI())
