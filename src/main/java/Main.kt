@@ -33,7 +33,7 @@ fun main() {
 
 fun suggestDriversAsync(passenger: Person, drivers: ArrayList<Person>): Deferred<Collection<Person>> =
     GlobalScope.async { getDistancesAsync(passenger, drivers).await().rows[0].elements
-                .mapIndexed { i, el -> Pair(el.duration.value ,drivers[i]) }
+                .mapIndexed { i, el -> Pair(el.duration.value, drivers[i]) }
                 .sortedBy { it.first }
                 .map { it.second }
     }
